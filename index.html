@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta charset="utf-8" />
+    <title>Game Search</title>
+    <script type="text/javascript" src="./d3.js"></script>
+    <script src="./d3-simple-slider.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+  </head>
+
+  <body>
+    <button class="helpButton">？</button>
+    <div class="help">
+      <div class="title">概要・使用方法</div>
+      <ul>
+        <li>
+          <a
+            href="https://erogamescape.dyndns.org/~ap2/ero/toukei_kaiseki/sql_for_erogamer_form.php"
+            target="_blank"
+            >ゲームのレビューサイト</a
+          >から取得したデータを可視化しています。
+        </li>
+        <li>
+          画面左上のグラフに、ゲームの分布が表示されます。横軸が発売年月日、縦軸が得点中央値です。円の大きさは後述の条件によって変わります。
+        </li>
+        <li>
+          画面右上で、自分がゲームに求める項目のスライダーを大きな値に設定すると、好みに合うゲームほど大きい円で表示されます。<br />
+          例：多くの人がプレイしていて泣けるゲームが探したい時、「ゲームに得点を登録した人数」と「感動したゲーム」のスライダーを大きな値にします。
+        </li>
+        <li>
+          画面左下のスライダーは、グラフの表示を変更します
+          <ul>
+            <li>
+              「表示する嗜好合致度の範囲」で、重視する項目によるフィルターをかけます。このスライダーの範囲を右に移動させると、重視する項目にあまり一致しない(=小さく表示される)円が表示されなくなります。
+            </li>
+            <li>
+              「円の大きさ調整」で、円の見かけ上の大きさを変更します。このスライダーの範囲を右に移動させると、画面右上で重視した項目にあまり一致しない円も見かけ上は大きく表示されます。円が小さすぎ/大きすぎて見づらい時に使用します。
+            </li>
+            <li>
+              「得点中央値」で、縦軸の範囲を変更します。このスライダーで選択した範囲が縦軸の範囲となり、拡大されます。
+            </li>
+            <li>
+              「発売年」で、横軸の範囲を変更します。このスライダーで選択した範囲が横軸の範囲となり、拡大されます。
+            </li>
+          </ul>
+        </li>
+        <li>
+          画面右下のボタン群は、ゲームのハードを示しています。ボタンが非アクティブになるとそのハードのゲームは表示されなくなり、ボタンがアクティブなハードは表示されます。
+        </li>
+        <li>
+          グラフ上に表示される円にカーソルを重ねると、ゲーム名・ブランド名がカーソル右上に表示されます。選択された円は色が変わります。選択された以外に、同じブランドから出ているゲームの円も色が変わります。
+        </li>
+        <li>
+          グラフ上に表示される円をクリックして、ゲームの詳細情報を表示できます。
+        </li>
+        <li>
+          このヘルプは下部の「閉じる」ボタンで閉じ、画面左上端の？マークのボタンで再度開きます。
+        </li>
+      </ul>
+      <button class="closeButton">閉じる</button>
+    </div>
+    <div class="gameInfoDetailPopup">
+      <div class="gameInfoDetailLeft">
+        <div class="title"></div>
+        <div class="rowWrapper">
+          <div class="rowTitle">得点中央値：</div>
+          <div class="rowValue" id="rowValueScore"></div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">発売日：</div>
+          <div class="rowValue" id="rowValueSellday"></div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">得点入力者数：</div>
+          <div class="rowValue" id="rowValueNumberOfPlayer"></div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">機種：</div>
+          <div class="rowValue" id="rowValueModel"></div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">DMM：</div>
+          <div class="rowValue" id="rowValueDmmUrl">
+            <a target="_blank"></a>
+          </div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">げっちゅ屋：</div>
+          <div class="rowValue" id="rowValueGetchuUrl">
+            <a target="_blank"></a>
+          </div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">批評空間：</div>
+          <div class="rowValue" id="rowValueErogamescapeUrl">
+            <a target="_blank"></a>
+          </div>
+        </div>
+        <div class="rowWrapper">
+          <div class="rowTitle">公式HP：</div>
+          <div class="rowValue" id="rowValueGameOhpUrl">
+            <a target="_blank"></a>
+          </div>
+        </div>
+        <div class="povChartWrapper">
+          <div class="povChartValueWrapper"></div>
+          <div class="povChartLabelWrapper"></div>
+          <svg class="povChart"></svg>
+        </div>
+        <p class="povChartNote">
+          ※各観点(POV)について、A評価を重み3、B評価を2、C評価を1として和を取った値
+        </p>
+      </div>
+      <div class="gameInfoDetailRight">
+        <iframe
+          class="gameWebsiteWindow"
+          height="700"
+          width="700"
+          src=""
+          sandbox="allow-same-origin allow-scripts"
+        ></iframe>
+      </div>
+      <button class="closeButton">閉じる</button>
+    </div>
+    <div class="tooltipWrapper" id="tooltipGameInfoWrapper">
+      <div class="tooltipInfo" id="tooltipGameName"></div>
+      <div class="tooltipInfo" id="tooltipBrandName"></div>
+    </div>
+    <div class="leftWrapper">
+      <svg class="graph" width="870" height="570">
+        <text class="yearLabel" x="830" y="530">発売年</text>
+        <text class="scoreLabel" x="40" y="30">得点(中央値)</text>
+        <g
+          class="yearAxis"
+          fill="black"
+          stroke="none"
+          transform="translate(40,540)"
+        ></g>
+        <g
+          class="scoreAxis"
+          fill="black"
+          stroke="none"
+          transform="translate(40,40)"
+        ></g>
+      </svg>
+      <div class="searchRefineWrapper">
+        <div class="refineTarget" id="visiblePointRefine">
+          <div class="sliderValue" id="visiblePointSliderValue">
+            表示する嗜好合致度の範囲: 1 - 3500
+          </div>
+          <div class="slider" id="visiblePointSlider">
+            <svg
+              class="sliderSvg"
+              id="visiblePointSliderSvg"
+              width="350"
+              height="50"
+            >
+              <g
+                class="sliderG"
+                id="visiblePointSliderG"
+                transform="translate(30,30)"
+              ></g>
+            </svg>
+          </div>
+          <div class="sliderScale" id="visiblePointSliderScale">
+            <svg width="350" height="20">
+              <g
+                class="sliderAxis"
+                id="visiblePointSliderAxis"
+                fill="black"
+                stroke="none"
+                transform="translate(30,0)"
+              ></g>
+            </svg>
+          </div>
+        </div>
+        <div class="refineTarget" id="circleSizeRangeRefine">
+          <div class="sliderValue" id="circleSizeRangeSliderValue">
+            円の大きさ調整: 0 - 50
+          </div>
+          <div class="slider" id="circleSizeRangeSlider">
+            <svg
+              class="sliderSvg"
+              id="circleSizeRangeSliderSvg"
+              width="350"
+              height="50"
+            >
+              <g
+                class="sliderG"
+                id="circleSizeRangeSliderG"
+                transform="translate(30,30)"
+              ></g>
+            </svg>
+          </div>
+          <div class="sliderScale" id="circleSizeRangeSliderScale">
+            <svg width="350" height="300">
+              <g
+                class="sliderAxis"
+                id="circleSizeRangeSliderAxis"
+                fill="black"
+                stroke="none"
+                transform="translate(30,0)"
+              ></g>
+            </svg>
+          </div>
+        </div>
+        <div class="refineTarget" id="scoreRangeRefine">
+          <div class="sliderValue" id="scoreRangeSliderValue">
+            得点中央値の範囲: 0 - 100
+          </div>
+          <div class="slider" id="scoreRangeSlider">
+            <svg
+              class="sliderSvg"
+              id="scoreRangeSliderSvg"
+              width="350"
+              height="50"
+            >
+              <g
+                class="sliderG"
+                id="scoreRangeSliderG"
+                transform="translate(30,30)"
+              ></g>
+            </svg>
+          </div>
+          <div class="sliderScale" id="scoreRangeSliderScale">
+            <svg width="350" height="300">
+              <g
+                class="sliderAxis"
+                id="scoreRangeSliderAxis"
+                fill="black"
+                stroke="none"
+                transform="translate(30,0)"
+              ></g>
+            </svg>
+          </div>
+        </div>
+        <div class="refineTarget" id="yearRangeRefine">
+          <div class="sliderValue" id="yearRangeSliderValue">
+            発売年の範囲: 1980 - 2024
+          </div>
+          <div class="slider" id="yearRangeSlider">
+            <svg
+              class="sliderSvg"
+              id="yearRangeSliderSvg"
+              width="350"
+              height="50"
+            >
+              <g
+                class="sliderG"
+                id="yearRangeSliderG"
+                transform="translate(30,30)"
+              ></g>
+            </svg>
+          </div>
+          <div class="sliderScale" id="yearRangeSliderScale">
+            <svg width="350" height="300">
+              <g
+                class="sliderAxis"
+                id="yearRangeSliderAxis"
+                fill="black"
+                stroke="none"
+                transform="translate(30,0)"
+              ></g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rightWrapper">
+      <div class="adjustPovExplain">重視する事柄</div>
+      <div class="adjustPovWrapper"></div>
+      <div class="modelSelectWrapper">
+        <div class="bulkModelSelectWrapper">
+          <button class="bulkModelSelectButton" id="selectAllModel">
+            全選択
+          </button>
+          <button class="bulkModelSelectButton" id="unselectAllModel">
+            全解除
+          </button>
+        </div>
+        <div class="oneModelSelectWrapper"></div>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      // プログラム全体で使う変数の宣言
+      var widthGraph = 800;
+      var heightGraph = 500;
+      var minYear = 1980;
+      var maxYear = 2024;
+      var minScore = 0;
+      var maxScore = 100;
+      var minNumberOfPlayer = 1;
+      var maxNumberOfPlayer = 3500;
+      var minVisiblePoint = 1;
+      var maxVisiblePoint = 3500;
+      var minCircleSize = 1;
+      var maxCircleSize = 50;
+      var widthSearchRefineSlider = 300;
+      var activeButtonColor = "#10ffcb";
+      var semiActiveColor = "#f75590";
+      var activeBarColor = "#10ffcb";
+
+      var games;
+      var povWeight = {};
+      var povIdToIndex = {};
+      var povList = [];
+      var modelList = {};
+      var modelActive = [];
+      var brandList = {};
+
+      // グラフの軸設定
+      var yearScale = d3
+        .scaleLinear()
+        .domain([minYear, maxYear])
+        .range([0, widthGraph]);
+      var scoreScale = d3
+        .scaleLinear()
+        .domain([minScore, maxScore])
+        .range([heightGraph, 0]);
+      var numberOfPlayerScale = d3
+        .scaleSqrt()
+        .domain([minNumberOfPlayer, maxNumberOfPlayer])
+        .range([minCircleSize, maxCircleSize]);
+      var yearAxis = d3.axisBottom(yearScale).ticks(5, d3.format(",d"));
+      var scoreAxis = d3.axisLeft(scoreScale);
+      d3.select(".yearAxis").call(yearAxis);
+      d3.select(".scoreAxis").call(scoreAxis);
+
+      // 検索用のスライダー(visible point)
+      var visiblePointSlider = d3
+        .sliderBottom()
+        .min(minVisiblePoint)
+        .max(maxVisiblePoint)
+        .width(widthSearchRefineSlider)
+        .ticks(-1)
+        .default([minVisiblePoint, maxVisiblePoint])
+        .fill(activeBarColor);
+      var gVisiblePoint = d3.select("#visiblePointSliderG");
+      var visiblePointSliderScale = d3
+        .scaleLog()
+        .domain([minVisiblePoint, maxVisiblePoint])
+        .range([1, widthSearchRefineSlider]);
+      var visiblePointSliderAxis = d3
+        .axisBottom(visiblePointSliderScale)
+        .ticks(5);
+      d3.select("#visiblePointSliderAxis").call(visiblePointSliderAxis);
+
+      // 検索用のスライダー(year range)
+      var yearRangeSlider = d3
+        .sliderBottom()
+        .min(minYear)
+        .max(maxYear)
+        .width(widthSearchRefineSlider)
+        .ticks(-1)
+        .default([minYear, maxYear])
+        .fill(activeBarColor);
+      var gYearRange = d3.select("#yearRangeSliderG");
+      var yearRangeSliderScale = d3
+        .scaleLinear()
+        .domain([minYear, maxYear])
+        .range([1, widthSearchRefineSlider]);
+      var yearRangeSliderAxis = d3.axisBottom(yearRangeSliderScale).ticks(5);
+      d3.select("#yearRangeSliderAxis").call(yearRangeSliderAxis);
+
+      // 検索用のスライダー(score range)
+      var scoreRangeSlider = d3
+        .sliderBottom()
+        .min(minScore)
+        .max(maxScore)
+        .width(widthSearchRefineSlider)
+        .ticks(-1)
+        .default([minScore, maxScore])
+        .fill(activeBarColor);
+      var gScoreRange = d3.select("#scoreRangeSliderG");
+      var scoreRangeSliderScale = d3
+        .scaleLinear()
+        .domain([minScore, maxScore])
+        .range([1, widthSearchRefineSlider]);
+      var scoreRangeSliderAxis = d3.axisBottom(scoreRangeSliderScale).ticks(5);
+      d3.select("#scoreRangeSliderAxis").call(scoreRangeSliderAxis);
+
+      // 検索用のスライダー(circle size range)
+      var circleSizeRangeSlider = d3
+        .sliderBottom()
+        .min(minCircleSize)
+        .max(maxCircleSize)
+        .width(widthSearchRefineSlider)
+        .ticks(-1)
+        .default([minCircleSize, maxCircleSize])
+        .fill(activeBarColor);
+      var gCircleSizeRange = d3.select("#circleSizeRangeSliderG");
+      var circleSizeRangeSliderScale = d3
+        .scaleLinear()
+        .domain([minCircleSize, maxCircleSize])
+        .range([1, widthSearchRefineSlider]);
+      var circleSizeRangeSliderAxis = d3
+        .axisBottom(circleSizeRangeSliderScale)
+        .ticks(5);
+      d3.select("#circleSizeRangeSliderAxis").call(circleSizeRangeSliderAxis);
+    </script>
+    <script type="module" src="./mainscript.js"></script>
+  </body>
+</html>
