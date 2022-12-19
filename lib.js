@@ -398,6 +398,11 @@ export function makePopup(event, d) {
     .select("a")
     .attr("href", ohpUrl)
     .text(ohpUrl.substring(0, maxTextLength));
+  
+  // httpでURLが登録されている場合、iframeではhttpsで接続しようと試みる
+  if(gameWebsiteUrl.substring(0,5)=="http:"){
+    gameWebsiteUrl = "https:"+gameWebsiteUrl.substring(5);
+  }
   popup.select(".gameWebsiteWindow").attr("src", gameWebsiteUrl);
 }
 
